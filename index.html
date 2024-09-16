@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulasi GPS Kendaraan (Ragunan ke Blok M)</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=API_KEY"></script>
+    <style>
+        #map {
+            height: 80vh;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <h3>Simulasi GPS Kendaraan (Ragunan ke Blok M)</h3>
+    <div id="map"></div>
+
+    <button id="toggleButton">Start Simulation</button>
+
+    <script>
+        let map;
+        let vehicleMarker;
+        let directionsService;
+        let directionsRenderer;
+        let intervalTime = 1000;  // Interval to simulate GPS and fetch positions (5 seconds)
+        let gpsInterval;  // Interval to simulate GPS data sending
+        let fetchInterval;  // Interval to fetch GPS data
+        let routePath = [];  // Store the real route path
+        let currentStep = 0;  // Index of the current step on the route
+        let isRunning = false;
+        const vehicle_id = 1;
+
+        const button = document.getElementById('toggleButton');
+
+        // Real coordinates for Ragunan Zoo and Blok M
+        let startPosition = { lat: -6.304327, lng: 106.820161 };  // Ragunan Zoo
+        let endPosition = { lat: -6.244594, lng: 106.800434 };    // Blok M
+
+        // Initialize the map
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: startPosition,  // Start at Ragunan Zoo
+                zoom: 14
+            });
+
+            // Directions service and renderer for displaying the route
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                map: map
+            });
+
+            // Create vehicle marker
+            vehicleMarker = new google.maps.Marker({
+                position: startPosition,  // Start position
+                map: map,
+                title: 'Kendaraan',
+                icon: {
+                    url: 'https://maps.google.com/mapfiles/kml/shapes/cabs.png',  // Vehicle icon
+                    scaledSize: new google.maps.Size(32, 32)  // Smaller size
+                }
+            });
+
+            // Fetch the route from Google Directions API
+            displayRoute();
+        }
+
+        // Function to display the route from Ragunan to Blok M
+        function displayRoute() {
+            const request = {
+                origin: startPosition,
+                destination: endPosition,
+                travelMode: google.maps.TravelMode.DRIVING
+            };
+
+            directionsService.route(request, function(result, status) {
+                if (status == google.maps.DirectionsStatus.OK) {
+                    directionsRenderer.setDirections(result);
+
+                    // Store the route path for GPS simulation
+                    routePath = result.routes[0].overview_path;
+                } else {
+                    console.error('Error fetching directions ' + status);
+                }
+            });
+        }
+
+        // Function to simulate GPS data using the actual route path and send it to the database
+        function simulateGPS() {
+            if (currentStep < routePath.length) {
+                const position = routePath[currentStep];  // Get the current step in the route
+                currentStep++;
+
+                // Send GPS data to the database
+                const formData = new FormData();
+                formData.append('vehicle_id', vehicle_id);
+                formData.append('latitude', position.lat());
+                formData.append('longitude', position.lng());
+
+                fetch('addPosition.php', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => response.text())
+                  .then(result => {
+                      console.log(result);  // Log the result for debugging
+                  });
+            } else {
+                clearInterval(gpsInterval);  // Stop when all points are reached
+                console.log('End of route');
+            }
+        }
+
+        // Function to fetch the latest GPS positions from the database
+        function fetchGPSData() {
+            fetch('getPositions.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        // Get the latest position from the array
+                        const latestPosition = data[data.length - 1];
+                        const position = new google.maps.LatLng(latestPosition.latitude, latestPosition.longitude);
+                        vehicleMarker.setPosition(position);
+                    }
+                });
+        }
+
+        // Toggle button to start/stop simulation
+        button.addEventListener('click', function () {
+            if (isRunning) {
+                clearInterval(gpsInterval);  // Stop sending GPS data
+                clearInterval(fetchInterval);  // Stop fetching GPS data
+                button.textContent = 'Start Simulation';
+                isRunning = false;
+            } else if (routePath.length > 0) {
+                currentStep = 0;  // Reset the route to the beginning
+                gpsInterval = setInterval(simulateGPS, intervalTime);  // Simulate sending GPS every 5 seconds
+                fetchInterval = setInterval(fetchGPSData, intervalTime);  // Fetch latest GPS data every 5 seconds
+                button.textContent = 'Stop Simulation';
+                isRunning = true;
+            }
+        });
+
+        // Initialize the map when the window loads
+        window.onload = initMap;
+    </script>
+
+</body>
+</html>

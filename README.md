@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/857956524.svg)](https://doi.org/10.5281/zenodo.18732111)
 
 # Vehicle GPS Simulation (Ragunan to Blok M)
 
@@ -116,6 +117,21 @@ vehicle-gps-simulation/
 - **API Key Protection**: Make sure to restrict your API key by referrer to avoid abuse. Do this in the [Google Cloud Console](https://console.cloud.google.com/).
 - **Read-Only MySQL User**: For better security, create a read-only user for fetching GPS data in `getPositions.php`.
 
+## Citation
+
+If you use this software in academic work, please cite:
+
+Pratama, I. W. P. (2026). *Vehicle GPS Simulation (Ragunan to Blok M)* (Version 1.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.18732111
+
+---
+
 ## License
 
-This project is open-source and available under the [MIT License](LICENSE).
+This project is licensed under the MIT License.
+
+---
+
+## Author
+
+I Wayan Pio Pratama  
+GitHub: https://github.com/piopratama
